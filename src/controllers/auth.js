@@ -5,7 +5,9 @@ import jwt from "jsonwebtoken";
 
 export const signup = async (req, res) => {
     try {
-        const { error } = signupSchema.validate(req.body, { abortEarly: false });
+        const { error } = signupSchema.validate(req.body, {
+            abortEarly: false,
+        });
         if (error) {
             const errors = error.details.map((err) => err.message);
             return res.status(400).json({
@@ -48,7 +50,9 @@ export const signup = async (req, res) => {
 export const signin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const { error } = signinSchema.validate(req.body, { abortEarly: false });
+        const { error } = signinSchema.validate(req.body, {
+            abortEarly: false,
+        });
         if (error) {
             return res.status(400).json({
                 message: error.details.map((err) => err.message),
