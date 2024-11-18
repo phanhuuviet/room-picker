@@ -29,7 +29,7 @@ app.use("/api", orderRouter);
 
 mongoose
     .connect(
-        "mongodb+srv://vietphanhuu:xrNwcz8RQSv2GNxq@room-picker.jtvumqf.mongodb.net/?retryWrites=true&w=majority&appName=room-picker"
+        "mongodb+srv://vietphanhuu:Phanviet2002@room-picker.jtvumqf.mongodb.net/?retryWrites=true&w=majority&appName=room-picker"
     )
     .then(() => {
         console.log("Connect db success");
