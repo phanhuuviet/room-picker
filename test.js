@@ -1,7 +1,14 @@
 import crypto from "crypto";
 
-const timeHeader = new Date().toISOString(); // Current ISO 8601 timestamp
-const payload = {
+// Data for signin request
+const signinData = {
+    email: "phanhuuviet1@gmail.com",
+    password: "123456",
+};
+
+const HOST = "http://localhost:3030/api";
+
+const EXAMPLE_PAYLOAD = {
     roomName: "Deluxe Suite",
     roomNumber: 101,
     capacity: 2,
@@ -9,24 +16,64 @@ const payload = {
     features: ["WiFi", "Air Conditioning", "Breakfast Included"],
 };
 
-// Encode payload
-const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString("base64");
+// Step 1: Sign in to get the accessToken
+fetch(`${HOST}/signin`, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify(signinData),
+})
+    .then((response) => response.json())
+    .then((data) => {
+        // Extract the accessToken from the response
+        const accessToken = data.accessToken;
 
-// Generate HMAC SHA256 signature
-const secretKey = timeHeader; // Use timeHeader as the secret key
-const signature = crypto
-    .createHmac("sha256", secretKey)
-    .update(payloadBase64)
-    .digest("hex");
+        // If accessToken is available, proceed with the next step
+        if (accessToken) {
+            const timeHeader = new Date().toISOString(); // Current ISO 8601 timestamp
+            const payload = EXAMPLE_PAYLOAD;
 
-// Combine payload and signature
-const encodedPayload = `${payloadBase64}.${signature}`;
+            // Convert payload to Base64
+            const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString(
+                "base64"
+            );
 
-// Generate the curl command
-const curlCommand = `curl -X POST http://localhost:3030/api/create-room \\
+            // Generate AES-256-CBC key from timeHeader using HMAC-SHA256
+            const secretKey = crypto
+                .createHmac("sha256", timeHeader)
+                .update(timeHeader)
+                .digest("hex")
+                .slice(0, 32); // Use the first 32 characters (256 bits)
+
+            // Generate a random IV (Initialization Vector)
+            const iv = crypto.randomBytes(16);
+
+            // Encrypt the payload using AES-256-CBC
+            const cipher = crypto.createCipheriv("aes-256-cbc", secretKey, iv);
+            let encryptedPayload = cipher.update(
+                payloadBase64,
+                "utf-8",
+                "base64"
+            );
+            encryptedPayload += cipher.final("base64");
+
+            // Combine encrypted payload and IV into the final encodedPayload
+            const ivBase64 = iv.toString("base64");
+            const encodedPayload = `${encryptedPayload}.${ivBase64}`;
+
+            const curlCommand = `curl -X POST ${HOST}/create-room \\
 -H "Content-Type: application/json" \\
 -H "time: ${timeHeader}" \\
+-H "Authorization: Bearer ${accessToken}" \\
 -d '{"encodedPayload": "${encodedPayload}"}'`;
 
-console.log("Generated curl command:");
-console.log(curlCommand);
+            console.log("Generated curl command:");
+            console.log(curlCommand);
+        } else {
+            console.error("Access token not found in the response.");
+        }
+    })
+    .catch((error) => {
+        console.error("Error signing in:", error.message);
+    });

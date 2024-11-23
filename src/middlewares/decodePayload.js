@@ -16,7 +16,12 @@ export const decodePayloadMiddleware = (req, res, next) => {
                 .json({ error: "'time' header is not in ISO 8601 format." });
         }
 
-        const secretKey = timeHeader;
+        // Use timeHeader as HMAC key
+        const secretKey = crypto
+            .createHmac("sha256", timeHeader) // timeHeader is used as HMAC key
+            .update(timeHeader)
+            .digest("hex")
+            .slice(0, 32); // Use the first 32 characters (256 bits)
 
         const { encodedPayload } = req.body;
         if (!encodedPayload) {
@@ -26,26 +31,24 @@ export const decodePayloadMiddleware = (req, res, next) => {
         }
 
         // Decode the payload
-        const [payload, signature] = encodedPayload.split(".");
-        if (!payload || !signature) {
+        const [encryptedPayload, ivBase64] = encodedPayload.split(".");
+        if (!encryptedPayload || !ivBase64) {
             return res
                 .status(400)
                 .json({ error: "Invalid encodedPayload format." });
         }
 
-        const computedSignature = crypto
-            .createHmac("sha256", secretKey)
-            .update(payload)
-            .digest("hex");
+        const iv = Buffer.from(ivBase64, "base64");
+        const encryptedData = Buffer.from(encryptedPayload, "base64");
 
-        if (computedSignature !== signature) {
-            return res.status(401).json({ error: "Invalid signature." });
-        }
+        // Decrypt the payload using AES-256-CBC
+        const decipher = crypto.createDecipheriv("aes-256-cbc", secretKey, iv);
+        let decoded = decipher.update(encryptedData, "base64", "utf-8");
+        decoded += decipher.final("utf-8");
 
-        // Parse the decoded payload
-        const decodedPayload = JSON.parse(
-            Buffer.from(payload, "base64").toString("utf-8")
-        );
+        const decodedBase64 = Buffer.from(decoded, "base64").toString("utf-8");
+
+        const decodedPayload = JSON.parse(decodedBase64);
 
         // Replace req.body with the decoded payload
         req.body = decodedPayload;
