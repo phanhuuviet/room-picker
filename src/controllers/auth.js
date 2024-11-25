@@ -92,3 +92,10 @@ export const signin = async (req, res) => {
         });
     }
 };
+
+export const decodedPayload = async (req, res) => {
+    return res.status(200).json({
+        message: "Decoded payload successfully",
+        data: req.body,
+    });
+};

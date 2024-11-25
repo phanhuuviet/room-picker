@@ -11,17 +11,21 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import { sendEmail } from "./service/sendMail.js";
 import bodyParser from "body-parser";
+import { encodedResponseMiddleware } from "./middlewares/encodeResponse.js";
+import { skipMiddleware } from "./middlewares/skipMiddleware.js";
 
 dotenv.config();
 // khởi tạo
 const app = express();
 const server = http.createServer(app);
+
 app.use(express.json());
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(skipMiddleware(encodedResponseMiddleware, ["/api/decoded"]));
 app.use("/api", authRouter);
 app.use("/api", userRouter);
 app.use("/api", roomRouter);

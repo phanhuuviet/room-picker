@@ -52,7 +52,6 @@ export const decodePayloadMiddleware = (req, res, next) => {
 
         // Replace req.body with the decoded payload
         req.body = decodedPayload;
-        console.log("Decoded payload:", decodedPayload);
 
         next();
     } catch (error) {
