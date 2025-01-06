@@ -2,6 +2,7 @@ import express from "express";
 import { orderController } from "../controllers/order.js";
 import { validateJWT } from "../middlewares/jwt.js";
 import { decodePayloadMiddleware } from "../middlewares/decodePayload.js";
+import vnPay from "../controllers/vnpay.js";
 const router = express.Router();
 router.post(
     "/create-order/:id",
@@ -21,6 +22,12 @@ router.post(
     validateJWT,
     decodePayloadMiddleware,
     orderController.updateStatusOrder
+);
+router.post(
+    "/create-payment",
+    validateJWT,
+    decodePayloadMiddleware,
+    vnPay.payment
 );
 
 export default router;
